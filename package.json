@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@upstash/redis": "^1.30.0",
+    "@vingle/bmp-js": "^0.2.5",
     "bmp-js": "^0.1.0",
     "googleapis": "^140.0.0",
     "next": "15.5.4",

@@ -35,10 +35,15 @@ export async function POST(req) {
     // }
     const tiffBuffer = await bmpToTiffBuffer(bmpStream);
 
+    const adobeSub = req.cookies.get("adobe_lr_sub")?.value;
+    if (!adobeSub) {
+      throw new Error("missing_adobe_lr_sub_cookie");
+    }
     const lr = await uploadToLightroom({
       tiffBuffer,
       fileNameNoExt: job.fileName.replace(/\.bmp$/i, ""),
       parentPath: job.parentPath,
+      sub: adobeSub,
     });
 
     await redis.incr(JOB_DONE);

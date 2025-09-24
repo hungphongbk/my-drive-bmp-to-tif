@@ -14,7 +14,6 @@ export async function getDriveClient(sub) {
   let refresh_token = process.env.GOOGLE_REFRESH_TOKEN;
   if (sub) {
     const tokenInfo = await redis.hgetall(`${TOKEN_KEY_PREFIX}${sub}`);
-    console.log("tokenInfo", tokenInfo);
     if (tokenInfo && tokenInfo.refresh_token) {
       refresh_token = tokenInfo.refresh_token;
     }

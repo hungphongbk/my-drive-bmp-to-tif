@@ -10,7 +10,7 @@ export async function listChildren(drive, folderId) {
   do {
     const res = await drive.files.list({
       q: `'${folderId}' in parents and trashed=false`,
-      fields: "nextPageToken, files(id,name,mimeType)",
+      fields: "nextPageToken, files(id,name,mimeType,thumbnailLink)",
       pageSize: 1000,
       pageToken,
     });
@@ -38,6 +38,7 @@ export async function listAllBmpRecursively(drive, rootFolderId) {
             name: item.name,
             mimeType: item.mimeType || "image/bmp",
             parentPath: cur.path || "/",
+            thumbnail: item.thumbnailLink || null,
           });
         }
       }

@@ -6,6 +6,9 @@ export default function IngestPage() {
   const [folderUrl, setFolderUrl] = useState('');
   const [log, setLog] = useState([]);
   const [progress, setProgress] = useState({ total: 0, processed: 0, remaining: 0, percent: 0 });
+  // State để lưu danh sách file đã enqueue (có thumbnail, folder)
+  const [enqueuedFiles, setEnqueuedFiles] = useState([]);
+  const [enqueuedFolderId, setEnqueuedFolderId] = useState("");
 
   // status badges
   const [adobeStatus, setAdobeStatus] = useState('not_connected');
@@ -55,8 +58,15 @@ export default function IngestPage() {
       body: JSON.stringify({ folderUrl })
     });
     const j = await r.json();
-    if (!r.ok) setLog(l => [`Enqueue failed: ${j.error}`, ...l]);
-    else setLog(l => [`Enqueued ${j.total} BMP files`, ...l]);
+    if (!r.ok) {
+      setLog(l => [`Enqueue failed: ${j.error}`, ...l]);
+      setEnqueuedFiles([]);
+      setEnqueuedFolderId("");
+    } else {
+      setLog(l => [`Enqueued ${j.total} BMP files`, ...l]);
+      setEnqueuedFiles(j.files || []);
+      setEnqueuedFolderId(j.folderId || "");
+    }
     await refreshProgress();
   }
 
@@ -105,8 +115,24 @@ export default function IngestPage() {
   const adobeOk = adobeStatus === 'connected';
   const googleOk = googleStatus === 'connected';
 
+  // Group files theo folder
+  const groupedFiles = enqueuedFiles.reduce((acc, file) => {
+    if (!acc[file.folder]) acc[file.folder] = [];
+    acc[file.folder].push(file);
+    return acc;
+  }, {});
+
+  async function clearQueue() {
+    setLog(l => ["Đang xóa queue...", ...l]);
+    const r = await fetch('/api/queue/clear', { method: 'POST' });
+    const j = await r.json();
+    if (r.ok) setLog(l => [`Đã xóa ${j.cleared} jobs`, ...l]);
+    else setLog(l => [`Lỗi khi xóa queue: ${j.error}`, ...l]);
+    await refreshProgress();
+  }
+
   return (
-    <div className="p-6 max-w-2xl mx-auto space-y-4">
+    <div className="p-6 max-w-4xl mx-auto space-y-4">
       <h1 className="text-xl font-semibold">Drive BMP → TIFF → (Lightroom)</h1>
 
       {/* Kết nối Adobe & Google */}
@@ -136,15 +162,38 @@ export default function IngestPage() {
         <button onClick={processOne} className="px-3 py-2 rounded border">Process One</button>
         <button onClick={processAll} className="px-3 py-2 rounded border">Process All</button>
         <button onClick={refreshProgress} className="px-3 py-2 rounded border">Refresh</button>
+        <button onClick={clearQueue} className="px-3 py-2 rounded border text-red-700 border-red-400">Clear Queue</button>
       </div>
 
       <div className="text-sm">
         Progress: {progress.percent}% — {progress.processed}/{progress.total} (remaining {progress.remaining})
       </div>
 
-      <div className="bg-gray-50 border rounded p-3 h-64 overflow-auto text-sm space-y-1">
+      <div className="border rounded p-3 h-64 overflow-auto text-sm space-y-1">
         {log.map((l, i) => <div key={i}>{l}</div>)}
       </div>
+
+      {/* Thumbnails group theo folder */}
+      {enqueuedFiles.length > 0 && (
+        <div className="mt-6">
+          <h2 className="font-semibold mb-2">Thumbnails (group by folder):</h2>
+          <div className="space-y-4">
+            {Object.entries(groupedFiles).map(([folder, files]) => (
+              <div key={folder}>
+                <div className="font-medium text-sm mb-1">📁 {folder}</div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3 mb-2">
+                  {files.map(f => (
+                    <div key={f.id} className="flex flex-col items-center">
+                      <img src={f.thumbnail} alt={f.name} className="w-20 h-20 object-cover border rounded mb-1" />
+                      <div className="text-xs truncate w-full text-center">{f.name}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <p className="text-xs text-gray-500">
         Lưu ý: để giữ free-tier, mỗi job xử lý 1 ảnh. Nếu đổi port dev, nhớ cập nhật redirect URI của Adobe & Google.

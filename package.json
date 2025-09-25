@@ -6,7 +6,8 @@
     "dev": "next dev --turbopack -p 4000",
     "build": "next build --turbopack",
     "start": "next start -p 4000",
-    "lint": "eslint"
+    "lint": "eslint",
+    "py-api": "cd api/process && pipenv run python3 index.py"
   },
   "dependencies": {
     "@upstash/qstash": "^2.8.3",

@@ -21,7 +21,7 @@ export default function AlbumPicker({ value, onChange }) {
 		<div className="flex flex-col gap-2">
 			<label className="font-medium text-sm">Chọn album Lightroom:</label>
 			<select
-				className="border rounded px-3 py-2"
+				className="border rounded px-3 py-2 bg-white text-black"
 				value={selected}
 				onChange={handleChange}
 			>

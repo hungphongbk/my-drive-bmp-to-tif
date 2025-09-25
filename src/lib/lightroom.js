@@ -38,6 +38,10 @@ import { Redis } from "@upstash/redis";
 import { v4 as uuidv4 } from "uuid";
 // Hàm lấy catalogId từ API Lightroom
 export async function fetchCatalogId(sub) {
+  const redis = Redis.fromEnv();
+  const cacheKey = `adobe:lr:catalogid:${sub}`;
+  let cached = await redis.get(cacheKey);
+  if (cached) return cached;
   const access_token = await getAdobeAccessToken(sub);
   if (!access_token) return null;
   const clientId = process.env.ADOBE_CLIENT_ID;
@@ -69,10 +73,16 @@ export async function fetchCatalogId(sub) {
     console.error("[Lightroom catalog parse error]", e);
     return null;
   }
+  let catalogId = null;
   // Nếu trả về mảng, lấy id đầu tiên
-  if (Array.isArray(data) && data.length > 0 && data[0].id) return data[0].id;
+  if (Array.isArray(data) && data.length > 0 && data[0].id)
+    catalogId = data[0].id;
   // Nếu trả về object, lấy id
-  if (data.id) return data.id;
+  if (data.id) catalogId = data.id;
+  if (catalogId) {
+    await redis.set(cacheKey, catalogId, { ex: 3600 }); // cache 1h
+    return catalogId;
+  }
   return null;
 }
 

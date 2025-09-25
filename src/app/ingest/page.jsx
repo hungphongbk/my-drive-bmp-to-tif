@@ -72,21 +72,36 @@ export default function IngestPage() {
   }
 
   async function processOne() {
-    const r = await fetch('/api/worker/process', { method: 'POST' });
-    const j = await r.json();
-    if (j.status === 'done') setLog(l => [`✔ ${j.file}`, ...l]);
-    else if (j.status === 'idle') setLog(l => [`Queue empty`, ...l]);
-    else setLog(l => [`Retry: ${j.error}`, ...l]);
+    // Gửi 2 request song song
+    const results = await Promise.all([
+      fetch('/api/worker/process', { method: 'POST' }),
+      fetch('/api/worker/process', { method: 'POST' })
+    ]);
+    const jsons = await Promise.all(results.map(r => r.json()));
+    jsons.forEach(j => {
+      if (j.status === 'done') setLog(l => [`✔ ${j.file}`, ...l]);
+      else if (j.status === 'idle') setLog(l => [`Queue empty`, ...l]);
+      else setLog(l => [`Retry: ${j.error}`, ...l]);
+    });
     await refreshProgress();
   }
 
   async function processAll() {
     let keep = true;
     while (keep) {
-      const r = await fetch('/api/worker/process', { method: 'POST' });
-      const j = await r.json();
-      if (j.status === 'done') setLog(l => [`✔ ${j.file}`, ...l]);
-      if (j.status === 'idle') keep = false;
+      // Gửi 2 request song song
+      const results = await Promise.all([
+        fetch('/api/worker/process', { method: 'POST' }),
+        fetch('/api/worker/process', { method: 'POST' })
+      ]);
+      const jsons = await Promise.all(results.map(r => r.json()));
+      let idleCount = 0;
+      jsons.forEach(j => {
+        if (j.status === 'done') setLog(l => [`✔ ${j.file}`, ...l]);
+        if (j.status === 'idle') idleCount++;
+        if (j.status !== 'done' && j.status !== 'idle') setLog(l => [`Retry: ${j.error}`, ...l]);
+      });
+      if (idleCount === 2) keep = false;
       await refreshProgress();
       await new Promise(res => setTimeout(res, 300));
     }

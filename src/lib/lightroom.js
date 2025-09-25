@@ -1,3 +1,39 @@
+// Lấy danh sách albums từ Lightroom
+export async function getLightroomAlbums(sub) {
+  // Lấy access_token từ Redis
+  const access_token = await getAdobeAccessToken(sub);
+  if (!access_token) throw new Error("missing_adobe_access_token");
+  const clientId = process.env.ADOBE_CLIENT_ID;
+  const catalogId = await fetchCatalogId(sub);
+  if (!catalogId) throw new Error("missing_catalog_id");
+  const url = `https://lr.adobe.io/v2/catalogs/${catalogId}/albums`;
+  const res = await fetch(url, {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${access_token}`,
+      "X-API-Key": clientId,
+      "Content-Type": "application/json",
+    },
+  });
+  if (!res.ok) throw new Error(`Lightroom albums error: ${res.status}`);
+  let text = await res.text();
+  text = text.replace(/^while \(1\) \{\}\s*/, "");
+  console.log("[Lightroom albums response]", text);
+  let data;
+  try {
+    data = JSON.parse(text);
+  } catch (e) {
+    throw new Error("parse_albums_failed");
+  }
+  // Chuẩn hóa trả về: [{id, name}]
+  if (!data || !Array.isArray(data.resources)) return [];
+  return data.resources
+    .filter((a) => a.type === "album")
+    .map((a) => ({
+      id: a.id,
+      name: a.payload?.name || a.id,
+    }));
+}
 import { Redis } from "@upstash/redis";
 import { v4 as uuidv4 } from "uuid";
 // Hàm lấy catalogId từ API Lightroom

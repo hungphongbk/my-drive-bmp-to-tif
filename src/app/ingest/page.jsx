@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import AlbumPicker from './album-picker';
 
 export default function IngestPage() {
   const [folderUrl, setFolderUrl] = useState('');
@@ -180,7 +181,12 @@ export default function IngestPage() {
           <div className="space-y-4">
             {Object.entries(groupedFiles).map(([folder, files]) => (
               <div key={folder}>
-                <div className="font-medium text-sm mb-1">📁 {folder}</div>
+                <div className="flex justify-between">
+                  <div className="font-medium text-sm mb-1">📁 {folder}</div>
+                  <AlbumPicker value="" onChange={(albumId) => {
+                    //
+                  }} />
+                </div>
                 <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3 mb-2">
                   {files.map(f => (
                     <div key={f.id} className="flex flex-col items-center">
